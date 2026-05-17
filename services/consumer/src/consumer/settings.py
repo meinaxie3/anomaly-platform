@@ -14,7 +14,9 @@ class Settings(BaseSettings):
     stream_name: str = "metrics:stream"
     consumer_group: str = "consumer-group"
     consumer_name: str = "consumer-1"
-    batch_size: int = 100
+    # 500 events per XREADGROUP call: at 35 events/tick this covers ~14 ticks per batch,
+    # giving asyncpg's UNNEST upsert enough rows to amortise the per-query overhead.
+    batch_size: int = 500
     block_ms: int = 2000
 
     postgres_url: str = "postgresql://ap_user:ap_password@localhost:5432/ap_db"
