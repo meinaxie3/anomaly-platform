@@ -6,6 +6,7 @@ consume_loop()   — XREADGROUP -> batch_insert -> XACK cycle
 """
 
 import asyncio
+import time
 from collections.abc import Sequence
 
 import asyncpg
@@ -15,6 +16,7 @@ from ap_schemas import MetricEvent
 from pydantic import ValidationError
 
 from consumer.db import batch_insert
+from consumer.metrics import events_inserted, events_skipped, write_latency
 from consumer.settings import Settings
 
 log = get_logger(__name__)
@@ -80,9 +82,22 @@ async def consume_loop(
                 msg_ids.append(msg_id)
 
         if events:
+            t0 = time.perf_counter()
             async with pool.acquire() as conn:
                 inserted = await batch_insert(conn, events)
-            log.info("batch_written", count=len(events), inserted=inserted)
+            elapsed = time.perf_counter() - t0
+
+            write_latency.observe(elapsed)
+            events_inserted.inc(inserted)
+            events_skipped.inc(len(events) - inserted)
+
+            log.info(
+                "batch_written",
+                count=len(events),
+                inserted=inserted,
+                skipped=len(events) - inserted,
+                elapsed_ms=round(elapsed * 1000, 1),
+            )
 
         if msg_ids:
             await redis.xack(stream, group, *msg_ids)

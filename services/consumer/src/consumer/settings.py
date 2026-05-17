@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     block_ms: int = 2000
 
     postgres_url: str = "postgresql://ap_user:ap_password@localhost:5432/ap_db"
+    metrics_port: int = 9102
     log_level: str = "INFO"
     env: str = "dev"
 

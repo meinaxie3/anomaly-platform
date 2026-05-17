@@ -10,6 +10,8 @@ dependencies = [
     "uvicorn[standard]>=0.32",
     "redis[hiredis]>=5.2",
     "pydantic-settings>=2.7",
+    "prometheus-fastapi-instrumentator>=7.0",
+    "prometheus-client>=0.21",
 ]
 
 [project.scripts]

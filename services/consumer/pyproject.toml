@@ -9,6 +9,7 @@ dependencies = [
     "redis[hiredis]>=5.2",
     "asyncpg>=0.30",
     "pydantic-settings>=2.7",
+    "prometheus-client>=0.21",
 ]
 
 [project.scripts]
