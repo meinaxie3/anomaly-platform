@@ -163,7 +163,12 @@ async def test_batch_idempotency(pg_pool: asyncpg.Pool) -> None:
 async def test_stream_depth_recovers_after_consumer_drains(
     redis_client: aioredis.Redis,
 ) -> None:
-    """Send 500 events and verify XLEN eventually returns to 0 (consumer drains fully)."""
+    """Send 500 events and verify the consumer group PEL empties within 30s.
+
+    Redis Streams retain messages after XACK, so XLEN never drops to zero.
+    The correct drain signal is an empty PEL (Pending Entries List) — messages
+    delivered to the consumer group but not yet acknowledged.
+    """
     events = [_event_payload(value=float(i % 100)) for i in range(500)]
 
     async with httpx.AsyncClient(base_url=INGESTION_URL, timeout=30.0) as client:
@@ -171,10 +176,17 @@ async def test_stream_depth_recovers_after_consumer_drains(
         for i in range(0, 500, 100):
             await client.post("/ingest/batch", json=events[i : i + 100])
 
-    deadline = time.monotonic() + 30.0
-    depth = await redis_client.xlen("metrics:stream")
-    while depth > 0 and time.monotonic() < deadline:
-        await asyncio.sleep(1.0)
-        depth = await redis_client.xlen("metrics:stream")
+    async def _pending() -> int:
+        try:
+            info = await redis_client.xpending("metrics:stream", "consumer-group")
+            return int(info["pending"])
+        except Exception:
+            return 0  # group not yet created → nothing pending
 
-    assert depth == 0, f"Stream still has {depth} messages after 30s"
+    deadline = time.monotonic() + 30.0
+    pending = await _pending()
+    while pending > 0 and time.monotonic() < deadline:
+        await asyncio.sleep(1.0)
+        pending = await _pending()
+
+    assert pending == 0, f"Consumer group still has {pending} pending messages after 30s"

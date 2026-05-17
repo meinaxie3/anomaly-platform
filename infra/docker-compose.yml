@@ -5,16 +5,16 @@ services:
   postgres:
     image: timescale/timescaledb:2.17.2-pg16
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-anomaly}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
-      POSTGRES_DB: ${POSTGRES_DB:-anomaly}
+      POSTGRES_USER: ${POSTGRES_USER:-ap_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ap_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ap_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./sql:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-anomaly} -d ${POSTGRES_DB:-anomaly}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ap_user} -d ${POSTGRES_DB:-ap_db}"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -6,8 +6,19 @@ description = "Scheduled training job — fits per-service anomaly models and wr
 dependencies = [
     "ap-schemas",
     "ap-logging",
-    # Phase 3 additions: scikit-learn, prophet / statsmodels, pandas, joblib, minio
+    # Phase 3 additions
+    "scikit-learn>=1.6",
+    "pandas>=2.2",
+    "numpy>=2.0",
+    "joblib>=1.4",
+    "boto3>=1.36",
+    "asyncpg>=0.30",
+    "apscheduler>=3.10",
+    "pydantic-settings>=2.6",
 ]
+
+[project.scripts]
+training = "training.main:main"
 
 [tool.uv.sources]
 ap-schemas = { workspace = true }

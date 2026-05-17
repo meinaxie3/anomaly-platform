@@ -105,19 +105,30 @@ async def _run(duration_mins: int, interval_secs: int, drain_timeout: int) -> bo
         passed = False
 
     # ── 3. Wait for consumer to drain ─────────────────────────────────────────
-    typer.echo(f"\n[3] Waiting up to {drain_timeout}s for consumer to drain stream")
+    # Redis Streams keep messages after XACK — XLEN never drops to zero.
+    # The correct "drained" signal is an empty PEL (Pending Entries List):
+    # messages delivered to the consumer group but not yet ACKed.
+    typer.echo(f"\n[3] Waiting up to {drain_timeout}s for consumer group PEL to empty")
     redis = aioredis.from_url(REDIS_URL, decode_responses=True)
     deadline = time.monotonic() + drain_timeout
-    depth = await redis.xlen("metrics:stream")
-    while depth > 0 and time.monotonic() < deadline:
+
+    async def _pending() -> int:
+        try:
+            info = await redis.xpending("metrics:stream", "consumer-group")
+            return int(info["pending"])
+        except Exception:
+            return 0  # group not yet created → nothing pending
+
+    pending = await _pending()
+    while pending > 0 and time.monotonic() < deadline:
         await asyncio.sleep(2.0)
-        depth = await redis.xlen("metrics:stream")
+        pending = await _pending()
     await redis.aclose()
 
-    if depth == 0:
-        _ok("Stream fully drained")
+    if pending == 0:
+        _ok("Consumer group PEL fully drained (all messages ACKed)")
     else:
-        _fail(f"Stream still has {depth} messages after {drain_timeout}s")
+        _fail(f"Consumer group still has {pending} pending messages after {drain_timeout}s")
         passed = False
 
     # ── 4. Row count in TimescaleDB ───────────────────────────────────────────
