@@ -40,10 +40,19 @@ fmt:  ## Auto-fix formatting and lint issues
 typecheck:  ## Run mypy across all packages with source code
 	uv run mypy libs/ services/ load-gen/
 
-test:  ## Run the full test suite
+test:  ## Run the full unit/component test suite
 	uv run pytest
+
+test-integration:  ## Run integration tests (requires: make up + ingestion service running)
+	uv run pytest tests/integration -m integration --tb=short
 
 # ── Data ────────────────────────────────────────────────────────────────────
 
 seed:  ## Generate synthetic metrics to output/ (7 days, seed 42)
 	uv run load-gen
+
+seed-http:  ## Stream synthetic metrics directly to the ingestion API
+	uv run load-gen --mode http --ingestion-url http://localhost:8001
+
+verify-dod:  ## Run Phase 2 definition-of-done checks (requires: make up + services running)
+	uv run python scripts/verify_dod.py

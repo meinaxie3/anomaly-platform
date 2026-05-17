@@ -25,6 +25,9 @@ dev = [
     "mypy>=1.13",
     "ruff>=0.8",
     "pre-commit>=4.0",
+    "httpx>=0.28",
+    "asyncpg>=0.30",
+    "redis[hiredis]>=5.2",
 ]
 
 # ---------------------------------------------------------------------------
@@ -66,3 +69,7 @@ exclude = ["tests/"]
 asyncio_mode = "auto"
 addopts = "-v --tb=short --import-mode=importlib"
 testpaths = ["libs", "services", "load-gen"]
+
+markers = [
+    "integration: requires `make up` (TimescaleDB + Redis + ingestion service running)",
+]

@@ -45,11 +45,14 @@ source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "asyncpg" },
+    { name = "httpx" },
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "redis", extra = ["hiredis"] },
     { name = "ruff" },
 ]
 
@@ -57,11 +60,14 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "asyncpg", specifier = ">=0.30" },
+    { name = "httpx", specifier = ">=0.28" },
     { name = "mypy", specifier = ">=1.13" },
     { name = "pre-commit", specifier = ">=4.0" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
     { name = "pytest-cov", specifier = ">=6.0" },
+    { name = "redis", extras = ["hiredis"], specifier = ">=5.2" },
     { name = "ruff", specifier = ">=0.8" },
 ]
 
