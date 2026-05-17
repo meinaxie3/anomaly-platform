@@ -1,0 +1,59 @@
+# Default anomaly schedule for a 7-day simulation.
+#
+# start_offset_hours is relative to the simulation start time.
+# Each anomaly window is written to ground_truth.jsonl for Phase 6 evaluation.
+#
+# Magnitude semantics:
+#   spike        — value multiplier      (5.0 → 5× normal)
+#   dip          — reduction fraction    (0.7 → drop to 30% of normal)
+#   level_shift  — absolute addend       (+200 → always add 200 to value)
+#   gradual_drift — total drift at end   (linear ramp from 0 → magnitude)
+
+anomalies:
+  # Day 1 — CPU spike on payment-api (e.g. runaway query, 30-minute incident)
+  - service: payment-api
+    metric: cpu_percent
+    type: spike
+    start_offset_hours: 24.0
+    duration_minutes: 30.0
+    magnitude: 5.0
+
+  # Day 2.5 — Error rate spike on auth-service (e.g. bad deploy, 20 min)
+  - service: auth-service
+    metric: error_rate
+    type: spike
+    start_offset_hours: 60.0
+    duration_minutes: 20.0
+    magnitude: 15.0
+
+  # Days 2–4 — Slow memory leak on inventory-db (gradual OOM build-up)
+  - service: inventory-db
+    metric: memory_percent
+    type: gradual_drift
+    start_offset_hours: 36.0
+    duration_hours: 48.0
+    magnitude: 20.0
+
+  # Day 5 — Latency spike on notification-service (e.g. upstream dependency slow)
+  - service: notification-service
+    metric: latency_p99
+    type: spike
+    start_offset_hours: 120.0
+    duration_minutes: 45.0
+    magnitude: 8.0
+
+  # Day 4 — Traffic dip on api-gateway (e.g. upstream load balancer issue)
+  - service: api-gateway
+    metric: request_rate
+    type: dip
+    start_offset_hours: 96.0
+    duration_minutes: 60.0
+    magnitude: 0.7
+
+  # Days 6–6.5 — Sustained p95 degradation on payment-api (level shift)
+  - service: payment-api
+    metric: latency_p95
+    type: level_shift
+    start_offset_hours: 144.0
+    duration_hours: 12.0
+    magnitude: 200.0

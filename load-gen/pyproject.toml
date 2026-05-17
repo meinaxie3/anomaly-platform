@@ -1,0 +1,27 @@
+[project]
+name = "ap-load-gen"
+version = "0.1.0"
+requires-python = ">=3.12"
+description = "Synthetic metric generator with injectable anomalies — deterministic given a seed"
+dependencies = [
+    "ap-schemas",
+    "ap-logging",
+    "numpy>=2.2",
+    "typer>=0.15",
+    "pyyaml>=6.0",
+    "httpx>=0.28",   # used in Phase 2 for HTTP output mode
+]
+
+[project.scripts]
+load-gen = "load_gen.main:main"
+
+[tool.uv.sources]
+ap-schemas = { workspace = true }
+ap-logging  = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/load_gen"]

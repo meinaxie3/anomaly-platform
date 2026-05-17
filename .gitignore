@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# uv / pip
+.venv/
+venv/
+.uv/
+
+# Env
+.env
+*.env.local
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Mypy
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.next/
+frontend/build/
+
+# Docker volumes (local bind-mount artifacts)
+infra/volumes/
+
+# Generated load-gen output (large data files)
+output/
+!output/.gitkeep
+
+# macOS
+.DS_Store
+
+# JetBrains / VSCode
+.idea/
+.vscode/
+*.iml
+
+# Secrets baseline (detect-secrets keeps it, but .env itself is secret)
+# .secrets.baseline  ← committed intentionally
+
+# Distribution / packaging
+*.so
+*.dylib

@@ -1,0 +1,18 @@
+# Dev overrides: extra exposed ports, verbose logging, bind mounts for hot reload.
+# Usage: docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up -d
+
+name: anomaly-platform
+
+services:
+  postgres:
+    environment:
+      POSTGRES_LOG_STATEMENT: all
+    ports:
+      - "5432:5432"
+
+  redis:
+    command: redis-server --loglevel verbose
+
+  minio:
+    environment:
+      MINIO_BROWSER: "on"
