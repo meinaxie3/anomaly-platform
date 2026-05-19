@@ -38,18 +38,15 @@ async def score_batch(events: list[MetricEvent], request: Request) -> list[Anoma
     anomalies: list[AnomalyRecord] = []
 
     for event in events:
-        model = await cache.get(event.service, event.metric)
-        if model is None:
+        result = await cache.get_with_id(event.service, event.metric)
+        if result is None:
             log.debug("no_model_skip", service=event.service, metric=event.metric)
             continue
 
+        model, model_id = result
         raw_score = score_event(model, event)
         if not is_anomaly(raw_score, threshold):
             continue
-
-        # Retrieve model_id from cache entry for record-keeping
-        cache_entry = cache._cache.get((event.service, event.metric))
-        model_id = cache_entry.model_id if cache_entry else "unknown"
 
         anomalies.append(
             AnomalyRecord(

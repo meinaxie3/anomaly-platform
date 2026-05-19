@@ -94,7 +94,7 @@ def main(
         typer.echo(f"Training complete. Models trained: {n}")
         if n == 0:
             typer.echo("Warning: no models were trained (no data or all pairs skipped).", err=True)
-        raise typer.Exit(code=0 if n >= 0 else 1)
+        return
 
     # Run immediately on startup, then hand off to the scheduler
     typer.echo("Running initial training job...")

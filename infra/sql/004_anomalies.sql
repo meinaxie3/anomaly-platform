@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS anomalies (
     value        DOUBLE PRECISION NOT NULL,
     score        DOUBLE PRECISION NOT NULL,  -- raw decision_function output (negative = anomaly)
     threshold    DOUBLE PRECISION NOT NULL,  -- threshold in effect at scoring time
-    model_id     UUID             NOT NULL,
+    model_id     TEXT             NOT NULL,
     incident_id  UUID,                       -- NULL until grouped by the alert engine
     status       TEXT             NOT NULL DEFAULT 'open',  -- open | resolved | suppressed
 

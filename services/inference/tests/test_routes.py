@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from sklearn.ensemble import IsolationForest
 
 from inference.main import create_app
-from inference.model_cache import ModelCache, _CacheEntry
+from inference.model_cache import ModelCache
 from inference.settings import Settings
 
 
@@ -46,15 +46,12 @@ def _mock_pool() -> MagicMock:
 
 def _make_cache(model: IsolationForest | None) -> MagicMock:
     cache = MagicMock(spec=ModelCache)
+    pair = (model, "model-id-abc") if model is not None else None
+    cache.get_with_id = AsyncMock(return_value=pair)
     cache.get = AsyncMock(return_value=model)
     cache.invalidate_all = AsyncMock()
     cache.size = 1 if model else 0
-    if model is not None:
-        cache._cache = {
-            ("payment-api", "cpu_percent"): _CacheEntry(model=model, model_id="m1")
-        }
-    else:
-        cache._cache = {}
+    cache._cache = {}
     return cache
 
 

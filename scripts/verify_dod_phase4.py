@@ -29,11 +29,13 @@ from uuid import uuid4
 
 import asyncpg
 import httpx
+import redis.asyncio as aioredis
 import typer
 
 INGESTION_URL = "http://localhost:8001"
 INFERENCE_URL = "http://localhost:8002"
 POSTGRES_URL = "postgresql://ap_user:ap_password@localhost:5432/ap_db"
+REDIS_URL = "redis://localhost:6379/0"
 
 # Spike value — 10x typical cpu_percent to guarantee anomaly detection
 SPIKE_VALUE = 999.0
@@ -57,6 +59,31 @@ def _info(msg: str) -> None:
 
 async def _run() -> bool:
     passed = True
+
+    # Connect to Redis for suppression key management
+    redis = aioredis.from_url(REDIS_URL, decode_responses=True)
+
+    # ── Pre-flight: clean up old ungrouped anomalies + suppression key ─────────
+    # Historical ungrouped anomalies (accumulated while alerts service was
+    # offline) would be grouped into many incidents in a single cycle.  The
+    # first incident sets the suppression key, blocking every subsequent group
+    # including our fresh spike.  Delete stale ungrouped rows and clear the
+    # suppression key so the DoD spike is the only thing the engine sees.
+    pre_pool = await asyncpg.create_pool(POSTGRES_URL, min_size=1, max_size=2)
+    deleted = await pre_pool.fetchval(
+        """
+        DELETE FROM anomalies
+        WHERE  service = $1
+          AND  metric  = $2
+          AND  incident_id IS NULL
+          AND  timestamp < NOW() - INTERVAL '5 minutes'
+        """,
+        SPIKE_SERVICE,
+        SPIKE_METRIC,
+    )
+    await pre_pool.close()
+    suppression_key = f"alerts:suppression:{SPIKE_SERVICE}:{SPIKE_METRIC}"
+    await redis.delete(suppression_key)
 
     # ── 1. Inference health ───────────────────────────────────────────────────
     typer.echo("\n[1] Inference service health")
@@ -149,6 +176,7 @@ async def _run() -> bool:
         passed = False
 
     await pool.close()
+    await redis.aclose()
 
     # ── 5. /reload flushes model cache ────────────────────────────────────────
     typer.echo("\n[5] Testing POST /reload on inference service")

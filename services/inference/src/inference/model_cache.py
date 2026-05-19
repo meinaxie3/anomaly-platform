@@ -51,6 +51,17 @@ class ModelCache:
         self._locks: dict[tuple[str, str], asyncio.Lock] = {}
         self._global_lock = asyncio.Lock()
 
+    async def get_with_id(self, service: str, metric: str) -> tuple[IsolationForest, str] | None:
+        """Return ``(model, model_id)`` for *(service, metric)*, or ``None``."""
+        key = (service, metric)
+        result = await self.get(service, metric)
+        if result is None:
+            return None
+        entry = self._cache.get(key)
+        if entry is None:
+            return None
+        return entry.model, entry.model_id
+
     async def get(self, service: str, metric: str) -> IsolationForest | None:
         """Return the current model for *(service, metric)*, loading if needed.
 
