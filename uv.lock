@@ -98,12 +98,18 @@ source = { editable = "services/alerts" }
 dependencies = [
     { name = "ap-logging" },
     { name = "ap-schemas" },
+    { name = "asyncpg" },
+    { name = "pydantic-settings" },
+    { name = "redis", extra = ["hiredis"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "ap-logging", editable = "libs/logging" },
     { name = "ap-schemas", editable = "libs/schemas" },
+    { name = "asyncpg", specifier = ">=0.30" },
+    { name = "pydantic-settings", specifier = ">=2.6" },
+    { name = "redis", extras = ["hiredis"], specifier = ">=5.2" },
 ]
 
 [[package]]
@@ -114,6 +120,7 @@ dependencies = [
     { name = "ap-logging" },
     { name = "ap-schemas" },
     { name = "asyncpg" },
+    { name = "httpx" },
     { name = "prometheus-client" },
     { name = "pydantic-settings" },
     { name = "redis", extra = ["hiredis"] },
@@ -124,6 +131,7 @@ requires-dist = [
     { name = "ap-logging", editable = "libs/logging" },
     { name = "ap-schemas", editable = "libs/schemas" },
     { name = "asyncpg", specifier = ">=0.30" },
+    { name = "httpx", specifier = ">=0.28" },
     { name = "prometheus-client", specifier = ">=0.21" },
     { name = "pydantic-settings", specifier = ">=2.7" },
     { name = "redis", extras = ["hiredis"], specifier = ">=5.2" },
@@ -151,12 +159,32 @@ source = { editable = "services/inference" }
 dependencies = [
     { name = "ap-logging" },
     { name = "ap-schemas" },
+    { name = "asyncpg" },
+    { name = "boto3" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "joblib" },
+    { name = "prometheus-client" },
+    { name = "prometheus-fastapi-instrumentator" },
+    { name = "pydantic-settings" },
+    { name = "scikit-learn" },
+    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "ap-logging", editable = "libs/logging" },
     { name = "ap-schemas", editable = "libs/schemas" },
+    { name = "asyncpg", specifier = ">=0.30" },
+    { name = "boto3", specifier = ">=1.36" },
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "joblib", specifier = ">=1.4" },
+    { name = "prometheus-client", specifier = ">=0.21" },
+    { name = "prometheus-fastapi-instrumentator", specifier = ">=7.0" },
+    { name = "pydantic-settings", specifier = ">=2.6" },
+    { name = "scikit-learn", specifier = ">=1.6" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
 ]
 
 [[package]]

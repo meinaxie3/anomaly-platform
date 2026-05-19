@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     env: str = "dev"
 
+    # Inference service — best-effort scoring after each batch write
+    inference_url: str = "http://localhost:8002"
+    inference_timeout: float = 5.0  # seconds; consumer never blocks longer than this
+
 
 @lru_cache
 def get_settings() -> Settings:

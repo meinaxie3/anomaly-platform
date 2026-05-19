@@ -6,8 +6,21 @@ description = "FastAPI inference service — scores incoming metric batches agai
 dependencies = [
     "ap-schemas",
     "ap-logging",
-    # Phase 4 additions: fastapi, uvicorn, scikit-learn, joblib
+    # Phase 4 additions
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "scikit-learn>=1.6",
+    "joblib>=1.4",
+    "boto3>=1.36",
+    "asyncpg>=0.30",
+    "httpx>=0.28",
+    "prometheus-fastapi-instrumentator>=7.0",
+    "prometheus-client>=0.21",
+    "pydantic-settings>=2.6",
 ]
+
+[project.scripts]
+inference = "inference.main:main"
 
 [tool.uv.sources]
 ap-schemas = { workspace = true }

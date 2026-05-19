@@ -6,8 +6,14 @@ description = "Alert engine — groups anomalies into incidents and applies supp
 dependencies = [
     "ap-schemas",
     "ap-logging",
-    # Phase 4 additions: asyncpg / sqlalchemy, redis
+    # Phase 4 additions
+    "asyncpg>=0.30",
+    "redis[hiredis]>=5.2",
+    "pydantic-settings>=2.6",
 ]
+
+[project.scripts]
+alerts = "alerts.main:main"
 
 [tool.uv.sources]
 ap-schemas = { workspace = true }

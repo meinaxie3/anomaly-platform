@@ -12,6 +12,7 @@ import time
 from collections.abc import Sequence
 
 import asyncpg
+import httpx
 import redis.asyncio as aioredis
 from ap_logging import get_logger
 from ap_schemas import MetricEvent
@@ -25,6 +26,36 @@ log = get_logger(__name__)
 
 _MAX_RETRIES = 3
 _RETRY_BASE_DELAY = 1.0  # seconds; doubles on each attempt
+
+
+async def _score_batch(
+    events: list[MetricEvent],
+    inference_url: str,
+    timeout: float,
+) -> int:
+    """Forward *events* to the inference service for anomaly scoring.
+
+    Returns the number of anomalies detected.  Never raises — if the inference
+    service is unavailable the consumer continues processing normally.
+    """
+    payload = [e.model_dump(mode="json") for e in events]
+    try:
+        async with httpx.AsyncClient(base_url=inference_url, timeout=timeout) as client:
+            resp = await client.post("/score", json=payload)
+        if resp.is_success:
+            anomalies = resp.json()
+            if anomalies:
+                log.info("anomalies_detected", count=len(anomalies))
+            return len(anomalies)
+        else:
+            log.warning("inference_non_success", status=resp.status_code)
+            return 0
+    except httpx.TimeoutException:
+        log.warning("inference_timeout", inference_url=inference_url)
+        return 0
+    except Exception as exc:
+        log.warning("inference_error", error=str(exc))
+        return 0
 
 
 def parse_message(entry: tuple[bytes | str, dict[bytes | str, bytes | str]]) -> MetricEvent | None:
@@ -186,6 +217,7 @@ async def consume_loop(
         if events:
             inserted, skipped = await _write_with_retry(pool, events, msg_ids, redis, dlq_stream)
             log.info("batch_written", count=len(events), inserted=inserted, skipped=skipped)
+            await _score_batch(events, settings.inference_url, settings.inference_timeout)
 
         if msg_ids:
             await redis.xack(stream, group, *msg_ids)
