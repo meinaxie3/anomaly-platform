@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
-
 from ap_logging import get_logger
 from ap_schemas import AnomalyRecord, MetricEvent
+from fastapi import APIRouter, Request
 
 from inference.db import batch_insert_anomalies
 from inference.scorer import is_anomaly, score_event

@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-
 from ap_schemas import MetricEvent
 from consumer.worker import _score_batch
 

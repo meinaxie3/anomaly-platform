@@ -19,7 +19,7 @@ class ModelMetadata(BaseModel):
     n_samples: int = Field(description="Number of training data points used")
     fit_seconds: float = Field(description="Wall-clock time to fit the model")
 
-    # Holdout evaluation scores (0.0–1.0); -1.0 signals not available
+    # Holdout evaluation scores (0.0-1.0); -1.0 signals not available
     eval_precision: float = -1.0
     eval_recall: float = -1.0
     eval_f1: float = -1.0

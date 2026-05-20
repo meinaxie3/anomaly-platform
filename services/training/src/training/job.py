@@ -7,7 +7,6 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import asyncpg
-
 from ap_logging import get_logger
 from ap_schemas import ModelMetadata
 

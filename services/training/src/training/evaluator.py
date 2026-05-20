@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import f1_score, precision_score, recall_score
-
 from ap_logging import get_logger
+from sklearn.metrics import f1_score, precision_score, recall_score
 
 log = get_logger(__name__)
 

@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
 import time
+from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.ensemble import IsolationForest
-
 from inference.model_cache import ModelCache, _CacheEntry
+from sklearn.ensemble import IsolationForest
 from training.store import ModelStore
 from training.trainer import serialize
 
@@ -62,8 +61,8 @@ async def test_cache_hit_skips_minio() -> None:
     store = _make_store(model)
 
     cache = ModelCache(store=store, pool=pool, ttl_seconds=300)
-    await cache.get("svc", "m")   # first call — loads
-    await cache.get("svc", "m")   # second call — should hit cache
+    await cache.get("svc", "m")  # first call — loads
+    await cache.get("svc", "m")  # second call — should hit cache
 
     store.download.assert_called_once()  # only one download
 
@@ -76,13 +75,13 @@ async def test_cache_expired_triggers_reload() -> None:
     store = _make_store(model)
 
     cache = ModelCache(store=store, pool=pool, ttl_seconds=300)
-    await cache.get("svc", "m")   # loads
+    await cache.get("svc", "m")  # loads
 
     # Manually expire the cache entry
     cache._cache[("svc", "m")] = _CacheEntry(
         model=model, model_id="abc-123", loaded_at=time.monotonic() - 400
     )
-    await cache.get("svc", "m")   # should reload
+    await cache.get("svc", "m")  # should reload
 
     assert store.download.call_count == 2
 
@@ -107,11 +106,11 @@ async def test_invalidate_all_clears_cache() -> None:
     store = _make_store(model)
 
     cache = ModelCache(store=store, pool=pool, ttl_seconds=300)
-    await cache.get("svc", "m")    # loads and caches
+    await cache.get("svc", "m")  # loads and caches
     assert cache.size == 1
 
     await cache.invalidate_all()
     assert cache.size == 0
 
-    await cache.get("svc", "m")    # must reload
+    await cache.get("svc", "m")  # must reload
     assert store.download.call_count == 2

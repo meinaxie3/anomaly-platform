@@ -7,11 +7,10 @@ from contextlib import asynccontextmanager
 
 import asyncpg
 import uvicorn
+from ap_logging import get_logger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
-
-from ap_logging import get_logger
 
 from dashboard_api.routes import router
 from dashboard_api.settings import Settings, get_settings
@@ -71,7 +70,7 @@ def create_app(
 
 
 @asynccontextmanager
-async def _noop_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
+async def _noop_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 

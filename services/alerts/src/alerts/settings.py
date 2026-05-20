@@ -14,9 +14,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # Alert engine behaviour
-    poll_interval_secs: int = 10          # how often to check for ungrouped anomalies
-    grouping_window_secs: int = 600       # anomalies within 10 min → same incident
-    suppression_window_secs: int = 300    # don't re-fire for same series within 5 min
+    poll_interval_secs: int = 10  # how often to check for ungrouped anomalies
+    grouping_window_secs: int = 600  # anomalies within 10 min → same incident
+    suppression_window_secs: int = 300  # don't re-fire for same series within 5 min
 
     log_level: str = "INFO"
     env: str = "dev"

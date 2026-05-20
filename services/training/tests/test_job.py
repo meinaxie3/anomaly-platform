@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import numpy as np
 import pandas as pd
 import pytest
-
 from training.job import _MIN_SAMPLES, _train_one, run_training_job
 from training.settings import Settings
 from training.store import ModelStore
@@ -135,9 +134,7 @@ async def test_train_one_artifact_key_contains_model_id() -> None:
         patch("training.job.loader.load_series", new=AsyncMock(return_value=_normal_df(100))),
         patch("training.job.registry.register", new=AsyncMock()),
     ):
-        meta = await _train_one(
-            pool, store, _settings(), "svc", "metric", window_start, NOW
-        )
+        meta = await _train_one(pool, store, _settings(), "svc", "metric", window_start, NOW)
 
     assert meta is not None
     assert str(meta.model_id) in meta.artifact_path

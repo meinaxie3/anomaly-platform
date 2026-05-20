@@ -23,13 +23,13 @@ from typing import Any
 
 import httpx
 
-INGESTION_URL    = "http://localhost:8001"
-INFERENCE_URL    = "http://localhost:8002"
-DASHBOARD_API    = "http://localhost:8003"
-FRONTEND_URLS    = ["http://localhost:5173", "http://localhost:4173"]
+INGESTION_URL = "http://localhost:8001"
+INFERENCE_URL = "http://localhost:8002"
+DASHBOARD_API = "http://localhost:8003"
+FRONTEND_URLS = ["http://localhost:5173", "http://localhost:4173"]
 
-MIN_AVG_F1       = 0.60   # if any evaluated model exists, avg must be >= this
-TIMEOUT          = 10.0
+MIN_AVG_F1 = 0.60  # if any evaluated model exists, avg must be >= this
+TIMEOUT = 10.0
 
 PASS = "\033[32m PASS\033[0m"
 FAIL = "\033[31m FAIL\033[0m"
@@ -56,13 +56,12 @@ async def main() -> int:
     failures = 0
 
     async with httpx.AsyncClient() as client:
-
         # ── 1. Service health ────────────────────────────────────────────────
         print("\n[1] Service health checks")
         for url, name in [
-            (INGESTION_URL,  "Ingestion  API"),
-            (INFERENCE_URL,  "Inference  API"),
-            (DASHBOARD_API,  "Dashboard  API"),
+            (INGESTION_URL, "Ingestion  API"),
+            (INFERENCE_URL, "Inference  API"),
+            (DASHBOARD_API, "Dashboard  API"),
         ]:
             if not await check_health(client, url, name):
                 failures += 1
@@ -78,7 +77,8 @@ async def main() -> int:
             if ok:
                 required = {"service", "open_incidents", "health", "last_anomaly_at"}
                 missing = required - svcs[0].keys()
-                failures += 0 if _result(not missing, "Service fields present", str(missing or "ok")) else 1
+                detail = str(missing or "ok")
+                failures += 0 if _result(not missing, "Service fields present", detail) else 1
         except Exception as exc:
             _result(False, "/services request", str(exc))
             failures += 1
@@ -96,31 +96,49 @@ async def main() -> int:
                 # Check schema
                 required = {"eval_precision", "eval_recall", "eval_f1"}
                 missing = required - models[0].keys()
-                failures += 0 if _result(not missing, "Eval fields present", str(missing or "ok")) else 1
+                eval_detail = str(missing or "ok")
+                failures += 0 if _result(not missing, "Eval fields present", eval_detail) else 1
 
                 # Evaluated models
                 evaluated = [m for m in models if m.get("eval_f1", -1) >= 0]
-                _result(True, f"{len(evaluated)}/{len(models)} models evaluated",
-                        "(run `make run-training` to populate eval scores)" if not evaluated else "")
+                no_eval_hint = "(run `make run-training` to populate eval scores)"
+                _result(
+                    True,
+                    f"{len(evaluated)}/{len(models)} models evaluated",
+                    no_eval_hint if not evaluated else "",
+                )
 
                 if evaluated:
                     # ── 4. Score range ────────────────────────────────────────
-                    bad = [m for m in evaluated
-                           if not (0 <= m["eval_f1"] <= 1
-                                   and 0 <= m["eval_precision"] <= 1
-                                   and 0 <= m["eval_recall"] <= 1)]
-                    failures += 0 if _result(not bad, "All eval scores in [0, 1]",
-                                             f"{len(bad)} out-of-range" if bad else "ok") else 1
+                    bad = [
+                        m
+                        for m in evaluated
+                        if not (
+                            0 <= m["eval_f1"] <= 1
+                            and 0 <= m["eval_precision"] <= 1
+                            and 0 <= m["eval_recall"] <= 1
+                        )
+                    ]
+                    range_detail = f"{len(bad)} out-of-range" if bad else "ok"
+                    in_range = _result(not bad, "All eval scores in [0, 1]", range_detail)
+                    failures += 0 if in_range else 1
 
                     # ── 5. Average F1 ─────────────────────────────────────────
                     avg_f1 = sum(m["eval_f1"] for m in evaluated) / len(evaluated)
                     ok5 = avg_f1 >= MIN_AVG_F1
-                    failures += 0 if _result(ok5, f"Avg F1 = {avg_f1:.3f} (threshold {MIN_AVG_F1})",
-                                             "ok" if ok5 else f"below {MIN_AVG_F1}") else 1
+                    f1_detail = "ok" if ok5 else f"below {MIN_AVG_F1}"
+                    failures += (
+                        0
+                        if _result(
+                            ok5, f"Avg F1 = {avg_f1:.3f} (threshold {MIN_AVG_F1})", f1_detail
+                        )
+                        else 1
+                    )
                 else:
                     print(f"  [{SKIP}] Avg F1 check — no evaluated models yet")
             elif ok and not models:
-                print(f"  [{SKIP}] Eval fields / scores — no models in DB (run `make run-training`)")
+                # No models yet — training hasn't run
+                print(f"  [{SKIP}] Eval scores — no models in DB (run `make run-training`)")
         except Exception as exc:
             _result(False, "/models request", str(exc))
             failures += 1
@@ -128,7 +146,8 @@ async def main() -> int:
         # ── 6. /incidents pagination ──────────────────────────────────────────
         print("\n[4] /incidents pagination")
         try:
-            r = await client.get(f"{DASHBOARD_API}/incidents?status=open&limit=5&offset=0", timeout=TIMEOUT)
+            url = f"{DASHBOARD_API}/incidents?status=open&limit=5&offset=0"
+            r = await client.get(url, timeout=TIMEOUT)
             failures += 0 if _result(r.status_code == 200, "/incidents?limit=5&offset=0") else 1
         except Exception as exc:
             _result(False, "/incidents request", str(exc))
@@ -140,7 +159,8 @@ async def main() -> int:
             svc = svcs[0]["service"]
             # We need a metric — fetch current models for this service
             try:
-                r = await client.get(f"{DASHBOARD_API}/models?service={svc}&current_only=true", timeout=TIMEOUT)
+                models_url = f"{DASHBOARD_API}/models?service={svc}&current_only=true"
+                r = await client.get(models_url, timeout=TIMEOUT)
                 svc_models = r.json() if r.status_code == 200 else []
                 if svc_models:
                     metric = svc_models[0]["metric"]
@@ -149,13 +169,21 @@ async def main() -> int:
                         "from": (now - timedelta(days=7)).isoformat(),
                         "to": now.isoformat(),
                     }
-                    r2 = await client.get(f"{DASHBOARD_API}/metrics/{svc}/{metric}", params=params, timeout=TIMEOUT)
+                    r2 = await client.get(
+                        f"{DASHBOARD_API}/metrics/{svc}/{metric}", params=params, timeout=TIMEOUT
+                    )
                     ok = r2.status_code == 200
                     body = r2.json() if ok else {}
                     has_points = bool(body.get("points"))
                     _result(ok, f"/metrics/{svc}/{metric} HTTP {r2.status_code}")
-                    _result(has_points, f"  Contains {len(body.get('points', []))} points",
-                            "(no data in 7-day window — is the load generator or consumer running?)" if not has_points else "")
+                    no_data_hint = (
+                        "(no data in 7-day window — is the load generator or consumer running?)"
+                    )
+                    _result(
+                        has_points,
+                        f"  Contains {len(body.get('points', []))} points",
+                        no_data_hint if not has_points else "",
+                    )
                     if not ok:
                         failures += 1
                 else:

@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from ap_schemas import AnomalyRecord
 from inference.db import batch_insert_anomalies
 
@@ -62,7 +61,7 @@ async def test_batch_insert_passes_correct_columns() -> None:
     _sql, rows = conn.executemany.call_args.args
     assert len(rows) == 1
     row = rows[0]
-    assert row[3] == "payment-api"   # service
-    assert row[4] == "cpu_percent"   # metric
+    assert row[3] == "payment-api"  # service
+    assert row[4] == "cpu_percent"  # metric
     assert row[6] == pytest.approx(-0.25)  # score
-    assert row[7] == pytest.approx(0.0)    # threshold
+    assert row[7] == pytest.approx(0.0)  # threshold

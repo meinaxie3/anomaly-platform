@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 import asyncpg
-
 from ap_logging import get_logger
 from ap_schemas import AnomalyRecord, IncidentRecord
 
@@ -52,20 +51,19 @@ async def persist_incident(
     member_anomaly_ids: list[UUID],
 ) -> None:
     """Atomically insert the incident and link its member anomalies."""
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            await conn.execute(
-                _INSERT_INCIDENT,
-                incident.incident_id,
-                incident.service,
-                incident.metric,
-                incident.started_at,
-            )
-            await conn.execute(
-                _LINK_ANOMALIES,
-                incident.incident_id,
-                member_anomaly_ids,
-            )
+    async with pool.acquire() as conn, conn.transaction():
+        await conn.execute(
+            _INSERT_INCIDENT,
+            incident.incident_id,
+            incident.service,
+            incident.metric,
+            incident.started_at,
+        )
+        await conn.execute(
+            _LINK_ANOMALIES,
+            incident.incident_id,
+            member_anomaly_ids,
+        )
     log.info(
         "incident_persisted",
         incident_id=str(incident.incident_id),

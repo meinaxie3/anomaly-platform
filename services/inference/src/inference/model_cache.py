@@ -14,9 +14,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import asyncpg
-from sklearn.ensemble import IsolationForest
-
 from ap_logging import get_logger
+from sklearn.ensemble import IsolationForest
 from training.store import ModelStore
 from training.trainer import deserialize
 

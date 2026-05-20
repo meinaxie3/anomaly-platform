@@ -7,14 +7,14 @@ from contextlib import asynccontextmanager
 
 import asyncpg
 import uvicorn
+from ap_logging import get_logger
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
+from training.store import ModelStore
 
-from ap_logging import get_logger
 from inference.model_cache import ModelCache
 from inference.routes import router
 from inference.settings import Settings, get_settings
-from training.store import ModelStore
 
 log = get_logger(__name__)
 

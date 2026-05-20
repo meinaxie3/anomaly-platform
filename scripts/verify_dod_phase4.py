@@ -70,7 +70,7 @@ async def _run() -> bool:
     # including our fresh spike.  Delete stale ungrouped rows and clear the
     # suppression key so the DoD spike is the only thing the engine sees.
     pre_pool = await asyncpg.create_pool(POSTGRES_URL, min_size=1, max_size=2)
-    deleted = await pre_pool.fetchval(
+    await pre_pool.fetchval(
         """
         DELETE FROM anomalies
         WHERE  service = $1

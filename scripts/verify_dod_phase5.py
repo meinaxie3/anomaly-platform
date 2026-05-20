@@ -36,22 +36,28 @@ DASHBOARD_URL = "http://localhost:8003"
 INGESTION_URL = "http://localhost:8001"
 
 SPIKE_SERVICE = "payment-api"
-SPIKE_METRIC  = "cpu_percent"
-SPIKE_VALUE   = 999.0
+SPIKE_METRIC = "cpu_percent"
+SPIKE_VALUE = 999.0
 
 app = typer.Typer(add_completion=False, pretty_exceptions_enable=False)
 
 
-def _ok(msg: str)   -> None: typer.echo(f"  [PASS] {msg}")
-def _fail(msg: str) -> None: typer.echo(f"  [FAIL] {msg}", err=True)
-def _info(msg: str) -> None: typer.echo(f"  [INFO] {msg}")
+def _ok(msg: str) -> None:
+    typer.echo(f"  [PASS] {msg}")
+
+
+def _fail(msg: str) -> None:
+    typer.echo(f"  [FAIL] {msg}", err=True)
+
+
+def _info(msg: str) -> None:
+    typer.echo(f"  [INFO] {msg}")
 
 
 async def _run() -> bool:
     passed = True
 
     async with httpx.AsyncClient(base_url=DASHBOARD_URL, timeout=10.0) as api:
-
         # ── 1. Health ─────────────────────────────────────────────────────────
         typer.echo("\n[1] Dashboard API health")
         try:
@@ -92,14 +98,14 @@ async def _run() -> bool:
             now = datetime.now(tz=UTC)
             params = {
                 "from": (now - timedelta(hours=3)).isoformat(),
-                "to":   now.isoformat(),
+                "to": now.isoformat(),
             }
             r = await api.get(f"/metrics/{SPIKE_SERVICE}/{SPIKE_METRIC}", params=params)
             assert r.status_code == 200
             body = r.json()
             assert "service" in body and body["service"] == SPIKE_SERVICE
-            assert "metric"  in body and body["metric"]  == SPIKE_METRIC
-            assert "points"   in body and isinstance(body["points"],   list)
+            assert "metric" in body and body["metric"] == SPIKE_METRIC
+            assert "points" in body and isinstance(body["points"], list)
             assert "anomalies" in body and isinstance(body["anomalies"], list)
             _ok(
                 f"Schema valid -- {len(body['points'])} points, "
@@ -119,8 +125,8 @@ async def _run() -> bool:
             if incidents:
                 i = incidents[0]
                 assert "incident_id" in i
-                assert "service"     in i
-                assert "status"      in i
+                assert "service" in i
+                assert "status" in i
                 assert "anomaly_count" in i
                 _ok(f"{len(incidents)} incidents returned, first: {i['service']} [{i['status']}]")
             else:
@@ -138,10 +144,10 @@ async def _run() -> bool:
             assert isinstance(models, list)
             if models:
                 m = models[0]
-                assert "model_id"   in m
-                assert "service"    in m
-                assert "algorithm"  in m
-                assert "eval_f1"    in m
+                assert "model_id" in m
+                assert "service" in m
+                assert "algorithm" in m
+                assert "eval_f1" in m
                 assert "is_current" in m
                 _ok(
                     f"{len(models)} models returned, first: {m['service']}/{m['metric']} "
@@ -160,7 +166,7 @@ async def _run() -> bool:
             ancient = (datetime.now(tz=UTC) - timedelta(days=60)).isoformat()
             r = await api.get(f"/metrics/{SPIKE_SERVICE}/{SPIKE_METRIC}", params={"from": ancient})
             assert r.status_code == 400
-            _ok(f"?from=60-days-ago correctly rejected with 400")
+            _ok("?from=60-days-ago correctly rejected with 400")
         except Exception as exc:
             _fail(f"Time-range validation failed: {exc}")
             passed = False
@@ -188,7 +194,7 @@ async def _run() -> bool:
             now = datetime.now(tz=UTC)
             params = {
                 "from": (now - timedelta(minutes=5)).isoformat(),
-                "to":   now.isoformat(),
+                "to": now.isoformat(),
             }
             async with httpx.AsyncClient(base_url=DASHBOARD_URL, timeout=5.0) as api2:
                 r2 = await api2.get(f"/metrics/{SPIKE_SERVICE}/{SPIKE_METRIC}", params=params)

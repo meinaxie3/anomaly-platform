@@ -5,7 +5,6 @@ from __future__ import annotations
 from uuid import UUID
 
 import asyncpg
-
 from ap_logging import get_logger
 from ap_schemas import ModelMetadata
 
@@ -60,26 +59,25 @@ async def register(pool: asyncpg.Pool, metadata: ModelMetadata) -> None:
       1. Clear any existing is_current flag for this (service, metric) pair.
       2. Insert the new record with is_current=True.
     """
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            await conn.execute(_CLEAR_CURRENT, metadata.service, metadata.metric)
-            await conn.execute(
-                _INSERT,
-                metadata.model_id,
-                metadata.service,
-                metadata.metric,
-                metadata.algorithm,
-                metadata.trained_at,
-                metadata.window_start,
-                metadata.window_end,
-                metadata.n_samples,
-                metadata.fit_seconds,
-                metadata.eval_precision,
-                metadata.eval_recall,
-                metadata.eval_f1,
-                metadata.artifact_path,
-                True,  # is_current — new models are always current
-            )
+    async with pool.acquire() as conn, conn.transaction():
+        await conn.execute(_CLEAR_CURRENT, metadata.service, metadata.metric)
+        await conn.execute(
+            _INSERT,
+            metadata.model_id,
+            metadata.service,
+            metadata.metric,
+            metadata.algorithm,
+            metadata.trained_at,
+            metadata.window_start,
+            metadata.window_end,
+            metadata.n_samples,
+            metadata.fit_seconds,
+            metadata.eval_precision,
+            metadata.eval_recall,
+            metadata.eval_f1,
+            metadata.artifact_path,
+            True,  # is_current — new models are always current
+        )
     log.info(
         "model_registered",
         model_id=str(metadata.model_id),

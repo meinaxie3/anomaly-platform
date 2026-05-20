@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from fastapi.testclient import TestClient
-
 from dashboard_api.main import create_app
 from dashboard_api.settings import Settings
-
+from fastapi.testclient import TestClient
 
 # ---------------------------------------------------------------------------
 # Helpers

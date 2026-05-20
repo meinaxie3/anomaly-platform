@@ -10,11 +10,10 @@ from uuid import uuid4
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
-from sklearn.ensemble import IsolationForest
-
 from inference.main import create_app
 from inference.model_cache import ModelCache
 from inference.settings import Settings
+from sklearn.ensemble import IsolationForest
 
 
 def _fitted_model(seed: int = 42) -> IsolationForest:

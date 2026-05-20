@@ -120,9 +120,7 @@ async def _run(skip_train: bool) -> bool:
     pool = await asyncpg.create_pool(POSTGRES_URL, min_size=1, max_size=2)
 
     total = await pool.fetchval("SELECT COUNT(*) FROM model_registry")
-    current = await pool.fetchval(
-        "SELECT COUNT(*) FROM model_registry WHERE is_current = TRUE"
-    )
+    current = await pool.fetchval("SELECT COUNT(*) FROM model_registry WHERE is_current = TRUE")
     with_scores = await pool.fetchval(
         "SELECT COUNT(*) FROM model_registry WHERE is_current = TRUE AND eval_f1 > 0"
     )
@@ -169,17 +167,16 @@ async def _run(skip_train: bool) -> bool:
     else:
         service, metric, model_id = row["service"], row["metric"], row["model_id"]
         # Simulate rollback: set is_current=FALSE then back to TRUE for the same model
-        async with pool.acquire() as conn:
-            async with conn.transaction():
-                await conn.execute(
-                    "UPDATE model_registry SET is_current=FALSE WHERE service=$1 AND metric=$2",
-                    service,
-                    metric,
-                )
-                await conn.execute(
-                    "UPDATE model_registry SET is_current=TRUE WHERE model_id=$1",
-                    model_id,
-                )
+        async with pool.acquire() as conn, conn.transaction():
+            await conn.execute(
+                "UPDATE model_registry SET is_current=FALSE WHERE service=$1 AND metric=$2",
+                service,
+                metric,
+            )
+            await conn.execute(
+                "UPDATE model_registry SET is_current=TRUE WHERE model_id=$1",
+                model_id,
+            )
         # Verify it's current again
         still_current = await pool.fetchval(
             "SELECT is_current FROM model_registry WHERE model_id=$1",

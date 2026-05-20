@@ -5,10 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-import pytest
-
-from ap_schemas import AnomalyRecord
 from alerts.grouper import group_into_incidents
+from ap_schemas import AnomalyRecord
 
 BASE_TIME = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
 

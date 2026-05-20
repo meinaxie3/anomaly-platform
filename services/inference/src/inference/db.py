@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncpg
-
 from ap_logging import get_logger
 from ap_schemas import AnomalyRecord
 

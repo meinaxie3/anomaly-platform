@@ -5,12 +5,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import numpy as np
-import pandas as pd
-import pytest
-from sklearn.ensemble import IsolationForest
-
 from ap_schemas import MetricEvent
 from inference.scorer import is_anomaly, score_event
+from sklearn.ensemble import IsolationForest
 
 
 def _fitted_model(seed: int = 42) -> IsolationForest:
@@ -42,7 +39,7 @@ def test_score_normal_value_is_positive() -> None:
 
 def test_score_extreme_spike_is_negative() -> None:
     model = _fitted_model()
-    score = score_event(model, _event(500.0))  # 10× spike — anomaly
+    score = score_event(model, _event(500.0))  # 10x spike -- anomaly
     assert score < 0.0
 
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncpg
 import redis.asyncio as aioredis
-
 from ap_logging import get_logger
 
 from alerts import db, suppression

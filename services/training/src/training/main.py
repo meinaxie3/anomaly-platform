@@ -10,15 +10,15 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import signal
-import sys
 
 import asyncpg
 import typer
+from ap_logging import get_logger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from ap_logging import get_logger
 from training.job import run_training_job
 from training.settings import get_settings
 from training.store import ModelStore
@@ -69,11 +69,9 @@ async def _scheduler_loop(schedule_hour: int) -> None:
 
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
-        try:
-            loop.add_signal_handler(sig, _handle_signal)
-        except NotImplementedError:
+        with contextlib.suppress(NotImplementedError):
             # Windows does not support add_signal_handler for all signals
-            pass
+            loop.add_signal_handler(sig, _handle_signal)
 
     await stop_event.wait()
     scheduler.shutdown(wait=False)
@@ -101,7 +99,8 @@ def main(
     n = asyncio.run(_run_once())
     typer.echo(f"Initial run complete. Models trained: {n}")
 
-    typer.echo(f"Scheduler active — nightly job at {settings.schedule_hour:02d}:00 UTC. Press Ctrl+C to stop.")
+    hour = f"{settings.schedule_hour:02d}"
+    typer.echo(f"Scheduler active — nightly job at {hour}:00 UTC. Press Ctrl+C to stop.")
     asyncio.run(_scheduler_loop(settings.schedule_hour))
 
 

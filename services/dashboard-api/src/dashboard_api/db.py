@@ -7,11 +7,10 @@ No writes happen here; the dashboard is a pure read layer.
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 from typing import Literal
 
 import asyncpg
-
 from ap_logging import get_logger
 
 from dashboard_api.schemas import (

@@ -6,8 +6,8 @@ import asyncio
 
 import asyncpg
 import redis.asyncio as aioredis
-
 from ap_logging import get_logger
+
 from alerts.engine import run_alert_cycle
 from alerts.settings import get_settings
 

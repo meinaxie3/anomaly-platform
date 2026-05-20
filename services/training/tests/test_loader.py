@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pandas as pd
 import pytest
-
 from training.loader import discover_pairs, load_series
 
 NOW = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
@@ -26,10 +25,7 @@ def _make_pool(rows: list[dict]) -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_load_series_returns_dataframe() -> None:
-    rows = [
-        {"timestamp": NOW - timedelta(hours=i), "value": float(i)}
-        for i in range(10)
-    ]
+    rows = [{"timestamp": NOW - timedelta(hours=i), "value": float(i)} for i in range(10)]
     pool = _make_pool(rows)
     df = await load_series(pool, "payment-api", "cpu_percent", START, NOW)
     assert isinstance(df, pd.DataFrame)

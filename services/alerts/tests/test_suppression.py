@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from alerts.suppression import _key, clear, is_suppressed, mark_fired
 
 
@@ -35,9 +34,7 @@ async def test_suppressed_when_key_exists() -> None:
 async def test_mark_fired_calls_set_with_ttl() -> None:
     redis = _mock_redis()
     await mark_fired(redis, "payment-api", "cpu_percent", window_secs=300)
-    redis.set.assert_awaited_once_with(
-        _key("payment-api", "cpu_percent"), "1", ex=300, nx=True
-    )
+    redis.set.assert_awaited_once_with(_key("payment-api", "cpu_percent"), "1", ex=300, nx=True)
 
 
 @pytest.mark.asyncio

@@ -10,9 +10,8 @@ anomalies can be re-evaluated if the threshold is tuned later.
 
 from __future__ import annotations
 
-from sklearn.ensemble import IsolationForest
-
 from ap_schemas import MetricEvent
+from sklearn.ensemble import IsolationForest
 
 
 def score_event(model: IsolationForest, event: MetricEvent) -> float:

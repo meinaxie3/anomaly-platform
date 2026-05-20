@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pandas as pd
-
 import asyncpg
-
+import pandas as pd
 from ap_logging import get_logger
 
 log = get_logger(__name__)

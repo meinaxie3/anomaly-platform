@@ -8,9 +8,8 @@ import time
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import IsolationForest
-
 from ap_logging import get_logger
+from sklearn.ensemble import IsolationForest
 
 log = get_logger(__name__)
 

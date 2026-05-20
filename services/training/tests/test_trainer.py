@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from sklearn.ensemble import IsolationForest
-
 from training.trainer import deserialize, predict, serialize, train
 
 

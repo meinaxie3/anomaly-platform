@@ -7,10 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-
-from ap_schemas import AnomalyRecord
 from alerts.engine import run_alert_cycle
 from alerts.settings import Settings
+from ap_schemas import AnomalyRecord
 
 BASE_TIME = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
 
@@ -43,8 +42,9 @@ async def test_cycle_creates_incident_for_ungrouped_anomalies() -> None:
     pool = MagicMock()
     redis = AsyncMock()
 
+    ungrouped = AsyncMock(return_value=[_anomaly()])
     with (
-        patch("alerts.engine.db.fetch_ungrouped_anomalies", new=AsyncMock(return_value=[_anomaly()])),
+        patch("alerts.engine.db.fetch_ungrouped_anomalies", new=ungrouped),
         patch("alerts.engine.db.persist_incident", new=AsyncMock()),
         patch("alerts.engine.suppression.is_suppressed", new=AsyncMock(return_value=False)),
         patch("alerts.engine.suppression.mark_fired", new=AsyncMock()),
@@ -60,8 +60,9 @@ async def test_cycle_suppresses_when_already_fired() -> None:
     pool = MagicMock()
     redis = AsyncMock()
 
+    ungrouped = AsyncMock(return_value=[_anomaly()])
     with (
-        patch("alerts.engine.db.fetch_ungrouped_anomalies", new=AsyncMock(return_value=[_anomaly()])),
+        patch("alerts.engine.db.fetch_ungrouped_anomalies", new=ungrouped),
         patch("alerts.engine.db.persist_incident", new=AsyncMock()) as mock_persist,
         patch("alerts.engine.suppression.is_suppressed", new=AsyncMock(return_value=True)),
         patch("alerts.engine.suppression.mark_fired", new=AsyncMock()),

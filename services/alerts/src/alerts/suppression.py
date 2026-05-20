@@ -8,7 +8,6 @@ within the suppression window — don't fire again.
 from __future__ import annotations
 
 import redis.asyncio as aioredis
-
 from ap_logging import get_logger
 
 log = get_logger(__name__)

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, HTTPException, Query, Request
-
 from ap_logging import get_logger
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from dashboard_api import db
 from dashboard_api.schemas import (
@@ -55,8 +54,8 @@ def _parse_dt(raw: str | None, fallback: datetime) -> datetime:
         return fallback
     try:
         dt = datetime.fromisoformat(raw)
-    except ValueError:
-        raise HTTPException(status_code=400, detail=f"Invalid datetime: {raw!r}")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid datetime: {raw!r}") from exc
     return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
 
 
