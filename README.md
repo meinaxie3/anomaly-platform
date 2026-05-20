@@ -2,27 +2,48 @@
 
 [![CI](https://github.com/meinaxie3/anomaly-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/meinaxie3/anomaly-platform/actions/workflows/ci.yml)
 
-A production-patterned ML system that ingests real-time service metrics, trains per-metric anomaly detection models on a nightly schedule, and surfaces detected anomalies through an alert engine and live React dashboard.
+A full-stack ML platform that watches microservice metrics in real time, automatically learns what "normal" looks like for each service, and raises alerts when behaviour deviates — without any manually configured thresholds.
+
+**Built with:** Python · FastAPI · Redis Streams · TimescaleDB · scikit-learn · React · TypeScript
+
+---
+
+## What it does
+
+| Component | Role |
+|-----------|------|
+| **Load generator** | Simulates 5 microservices emitting metrics every 10 seconds |
+| **Ingestion API** | Validates incoming metric events and pushes them to a Redis Stream |
+| **Stream consumer** | Reads the stream, writes raw metrics to TimescaleDB, and calls the Inference API |
+| **Inference API** | Scores each metric reading against a trained Isolation Forest model; writes anomalies to the DB |
+| **Alert engine** | Groups related anomalies into incidents and deduplicates repeat alerts |
+| **Training job** | Runs nightly — fits a new model per service+metric, evaluates it, and stores it in MinIO |
+| **Dashboard API** | Read-only FastAPI service that powers the React frontend |
+| **React dashboard** | Three-view UI: service health overview, per-metric time-series charts, and model registry |
+
+---
 
 ## Screenshots
 
-**Overview — service health grid and open incidents**
+**Service health overview** — see all services at a glance, with open incident counts and health status
 ![Dashboard overview](demo/dashboard.png)
 
-**Service detail — metric chart with anomaly markers**
+**Service detail** — click any service to see its metric charts with anomaly markers overlaid
 ![Anomaly detection graph](demo/anomaly%20detection%20graph.png)
 
-**Models — ML eval scores (precision / recall / F1)**
+**Model registry** — browse trained models with precision, recall, and F1 scores colour-coded by quality
 ![ML training results](demo/ml%20train%20results.png)
 
-**Dashboard API — Swagger docs**
+**Dashboard API docs** (http://localhost:8003/docs)
 ![Dashboard API](demo/dashboard%20api.png)
 
-**Ingestion API — Swagger docs**
+**Ingestion API docs** (http://localhost:8001/docs)
 ![Ingestion API](demo/ingestion%20api.png)
 
-**Inference API — Swagger docs**
+**Inference API docs** (http://localhost:8002/docs)
 ![Inference API](demo/interference%20api.png)
+
+---
 
 ## Architecture
 
@@ -55,8 +76,8 @@ A production-patterned ML system that ingests real-time service metrics, trains 
                   │ nightly                  └────────┬─────────┘
                   ▼                                   │ incident write
            ┌──────────────┐                           │
-           │ Training Job │   ──→  MinIO model store  │
-           │ (Prefect)    │        :9000               │
+           │ Training Job │──→  MinIO model store     │
+           │ (APScheduler)│     :9000                 │
            └──────────────┘                           ▼
                                            ┌──────────────────────┐
                                            │  Dashboard API       │
@@ -68,278 +89,291 @@ A production-patterned ML system that ingests real-time service metrics, trains 
                                              └─────────────────┘
 ```
 
-**Training path (offline):** TimescaleDB → Training Job → MinIO → Inference API loads model on startup.
+**Training path:** TimescaleDB → Training Job → MinIO → Inference API loads the model on startup.
+
+---
 
 ## Quickstart
 
 ### Prerequisites
 
-| Tool | Notes |
-|------|-------|
-| **Docker** (with Compose v2) | `docker compose version` |
-| **[uv](https://docs.astral.sh/uv/)** | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| **Node.js ≥ 18** | Only for the React dashboard |
+| Tool | How to install |
+|------|----------------|
+| **Docker** (with Compose v2) | [docker.com](https://www.docker.com/products/docker-desktop/) — verify with `docker compose version` |
+| **uv** (Python package manager) | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| **Node.js ≥ 18** | [nodejs.org](https://nodejs.org/) — only needed for the React dashboard |
 
-> **Windows:** Use the provided PowerShell script (`scripts\start.ps1`) — it opens each service in its own terminal window. Alternatively use WSL 2 and `scripts/start.sh`.
+> **Windows users:** the `make` commands below require WSL 2 or Git Bash. If you prefer native PowerShell, use `.\scripts\start.ps1` instead — it opens each service in its own terminal window automatically.
 
-### 1 — Clone and configure
+---
+
+### Step 1 — Clone and configure
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/meinaxie3/anomaly-platform.git
 cd anomaly-platform
-cp .env.example .env          # review passwords; defaults work for local dev
+cp .env.example .env          # defaults work for local development
 ```
 
-### 2 — Install Python dependencies
+### Step 2 — Install dependencies
 
 ```bash
-uv sync --all-packages        # installs every workspace package into .venv
+uv sync --all-packages        # Python workspace packages → .venv
+cd services/dashboard && npm install && cd ../..   # React dependencies
 ```
 
-### 3 — Start infrastructure
+### Step 3 — Start the database, cache, and object store
 
 ```bash
 docker compose -f infra/docker-compose.yml up -d --wait
 ```
 
-Waits until Postgres, Redis, and MinIO pass their health checks.
+This starts PostgreSQL (TimescaleDB), Redis, and MinIO, and waits until all three pass their health checks.
 
-### 4 — Run the full stack
-
-**Windows (PowerShell):**
-```powershell
-.\scripts\start.ps1
-```
+### Step 4 — Start all services
 
 **Linux / macOS / WSL:**
 ```bash
 bash scripts/start.sh
 ```
 
-Both scripts start all five Python services and the React dev server, then ask if you want to start the load generator.
+**Windows (PowerShell):**
+```powershell
+.\scripts\start.ps1
+```
 
-### 5 — Alternative: run services individually
+Both scripts start the 5 Python services and the React dev server, then ask if you want to start the load generator.
 
+**Or start each service manually** in separate terminals:
 ```bash
-make run-ingestion      # FastAPI ingestion (port 8001)
-make run-consumer       # Redis stream → TimescaleDB worker
-make run-inference      # FastAPI inference (port 8002)
+make run-ingestion      # Ingestion API       → http://localhost:8001
+make run-consumer       # Stream consumer worker
+make run-inference      # Inference API       → http://localhost:8002
 make run-alerts         # Alert engine
-make run-dashboard-api  # FastAPI dashboard API (port 8003)
-make run-ui             # React dev server (port 5173)
+make run-dashboard-api  # Dashboard API       → http://localhost:8003
+make run-ui             # React dashboard     → http://localhost:5173
 ```
 
-### 6 — Train the first models
-
-The inference service needs trained models to score incoming metrics.
+### Step 5 — Generate traffic
 
 ```bash
-make run-training       # runs one cycle and exits
+make run-load-gen       # streams synthetic metrics to the Ingestion API
 ```
 
-After training, the Models view in the dashboard shows eval precision / recall / F1 scores.
+### Step 6 — Train the models
 
-### 7 — Verify everything works
+The Inference API needs trained models before it can score metrics. Wait a few minutes for the load generator to accumulate data, then run:
 
 ```bash
-make verify-dod-6       # Phase 6 end-to-end health check
+make run-training       # trains one model per service+metric and exits
 ```
+
+After this, the **Models** page in the dashboard shows precision, recall, and F1 scores for each trained model.
+
+### Step 7 — Verify everything is working
+
+```bash
+make verify-dod-6
+```
+
+---
 
 ## Service URLs
 
 | Service | URL |
 |---------|-----|
+| React dashboard | http://localhost:5173 |
+| Dashboard API (Swagger) | http://localhost:8003/docs |
 | Ingestion API (Swagger) | http://localhost:8001/docs |
 | Inference API (Swagger) | http://localhost:8002/docs |
-| Dashboard API (Swagger) | http://localhost:8003/docs |
-| React dashboard | http://localhost:5173 |
-| MinIO console | http://localhost:9001 &nbsp;(`minio` / `minio123`) |
+| MinIO console | http://localhost:9001 — login: `minio` / `minio123` |
 
-## Repository layout
+---
 
-```
-anomaly-platform/
-├── services/
-│   ├── ingestion/        FastAPI — validates + enqueues metric events
-│   ├── consumer/         Redis Stream worker → TimescaleDB
-│   ├── inference/        FastAPI — online scoring per batch
-│   ├── alerts/           Alert engine — dedup + incident creation
-│   ├── dashboard-api/    FastAPI — serves dashboard queries (port 8003)
-│   │   └── tests/        pytest unit tests (no live DB)
-│   ├── training/         Nightly training job — fits + versions models
-│   └── dashboard/        React 18 + TypeScript frontend
-│       └── src/
-│           ├── api/          typed fetch client + TypeScript types
-│           ├── components/   StatusBadge, MetricChart, IncidentRow …
-│           ├── hooks/        TanStack Query hooks with auto-refresh
-│           └── views/        Overview, ServiceDetail, Models pages
-├── libs/
-│   ├── schemas/          Shared Pydantic models (MetricEvent, AnomalyRecord …)
-│   └── logging/          Shared structlog configuration
-├── load-gen/             Synthetic metric generator + anomaly injection
-├── infra/
-│   ├── docker-compose.yml      Postgres, Redis, MinIO
-│   └── sql/                    TimescaleDB init scripts + continuous aggregates
-├── scripts/
-│   ├── start.ps1               Windows one-command startup
-│   ├── start.sh / stop.sh      Unix one-command startup/shutdown
-│   ├── verify_dod_phase*.py    Phase DoD check scripts
-│   └── verify_dod.py           Phase 2 integration checks
-├── tests/
-│   └── integration/      Cross-service integration tests
-├── .github/workflows/ci.yml
-├── Makefile
-└── pyproject.toml        uv workspace root + ruff / mypy / pytest config
-```
+## How anomaly detection works
 
-## Developer workflow
+### The core idea
 
-| Command | What it does |
-|---------|-------------|
-| `make up` | Start infrastructure, wait for health checks |
-| `make down` | Stop containers |
-| `make install` | Install all Python workspace dependencies |
-| `make test` | Run pytest across all packages |
-| `make lint` | Ruff check (read-only) |
-| `make fmt` | Ruff format + auto-fix |
-| `make typecheck` | mypy across all packages |
-| `make clean` | Stop containers **and delete volumes** |
-| `make run-training` | Train one cycle — populates eval scores |
-| `make verify-dod-6` | End-to-end Phase 6 health check |
+Instead of writing rules like `if cpu > 80% → alert`, the platform trains a machine learning model on weeks of historical data and learns what *normal* looks like for each individual service and metric. A reading is flagged as an anomaly when it is statistically unusual compared to history — regardless of which direction.
 
-Pre-commit hooks (ruff + detect-secrets) run on every commit:
-```bash
-uv run pre-commit install
-```
+This means:
+- **No thresholds to configure** — the model adapts to each service automatically
+- **Time-aware** — a CPU reading of 75% at 3am can be anomalous even if 75% is normal at noon
+- **Catches drops too** — a sudden drop in `latency_p50` (service responding suspiciously fast) is just as suspicious as a spike, and may mean the service is short-circuiting and returning errors
 
-## Metrics & anomaly detection
+### The ML algorithm — Isolation Forest
 
-### How anomaly detection works
+Isolation Forest works by randomly partitioning the data using decision trees. Points that are easy to isolate (need very few cuts to separate from the rest) get a high anomaly score. Points deep inside a cluster of normal data need many cuts and score low.
 
-Every anomaly marker on the dashboard was flagged by a machine learning model — there are no hardcoded thresholds. Here is the full pipeline from raw metric to red dot on the chart:
+The model is **unsupervised** — it is never shown labelled examples of anomalies. It learns purely from the distribution of normal traffic.
 
-```
-Load Generator
-    │
-    │  sends cpu_percent = 42.3 every 10 seconds
-    ▼
-Ingestion API  →  Redis Stream  →  Consumer
-                                       │
-                                       │  batches readings, calls...
-                                       ▼
-                                 Inference API
-                                       │
-                                       │  loads the trained Isolation Forest
-                                       │  model for (payment-api, cpu_percent)
-                                       │  scores the new reading
-                                       │
-                              ┌────────┴────────┐
-                              │                 │
-                           normal            ANOMALY
-                              │                 │
-                         do nothing        write to anomalies table
-                                                │
-                                                ▼
-                                          Alert Engine
-                                                │
-                                          groups anomalies
-                                          into an Incident
-                                                │
-                                                ▼
-                                          Dashboard
-                                    (red dot on the chart)
-```
-
-### ML vs simple threshold alerting
+### Simple threshold vs ML
 
 | Simple threshold alerting | This platform |
 |---|---|
 | `if cpu > 80% → alert` | No hardcoded number |
 | Fires at 81% even at 3am when that's normal | Knows 3am baseline is different |
 | Silent if normal is 90% and value drops to 50% | Catches drops too |
-| Someone has to set every threshold manually | Model learns from data automatically |
-| Same rule for every service | Separate model per service + metric |
+| Must be configured manually per service | Separate model per service + metric, trained automatically |
 
-The model learns that `payment-api cpu_percent` peaks at ~57% during business hours and sits at ~28% overnight — so 75% at 2am is anomalous, but 75% at noon might not be.
+### Pipeline — from metric to dashboard
 
-> **Note:** anomalies can be high *or* low. A sudden drop in `latency_p50` (service responding near-instantly) is just as suspicious as a spike — it may indicate the service is short-circuiting and returning errors rather than doing real work.
+```
+Load Generator
+    │  emits cpu_percent = 42.3 every 10 s
+    ▼
+Ingestion API → Redis Stream → Consumer
+                                   │
+                                   ▼
+                             Inference API
+                             (scores reading against trained model)
+                                   │
+                        ┌──────────┴──────────┐
+                        │                     │
+                      normal               ANOMALY
+                        │                     │
+                   do nothing         write to anomalies table
+                                             │
+                                             ▼
+                                       Alert Engine
+                                    (groups into Incident)
+                                             │
+                                             ▼
+                                    Dashboard red dot
+```
 
-### What "anomaly detected" means
+---
 
-The platform trains an **Isolation Forest** model on each service + metric pair using weeks of historical data. The model learns what *normal* looks like — the typical range, the daily peaks, the quiet overnight hours. When a new metric reading arrives, the model scores it. If the score is unusual enough relative to history, it is flagged as an anomaly.
+## Metrics reference
 
-An anomaly does not mean the service is down — it means the value is behaving in a way the model has not seen before. Whether that is a problem depends on the metric (a CPU spike is more urgent than a memory blip).
+Five synthetic services are simulated, each emitting 7 metrics. Baselines below are for `payment-api`.
 
-### Metric reference
-
-Each of the five synthetic services tracks the same 7 metrics. Baselines below are for `payment-api`.
-
-| Metric | Unit | What it measures | Normal baseline | Anomaly means… |
+| Metric | Unit | What it measures | Normal baseline | An anomaly means… |
 |---|---|---|---|---|
-| `cpu_percent` | % | CPU consumed by the service | ~42% | Runaway process, traffic surge, or inefficient query |
-| `memory_percent` | % | RAM usage as a share of total available | ~58% | Creeping growth = memory leak; sudden jump = large allocation |
-| `request_rate` | req/s | Requests arriving per second | ~120 req/s | Spike = retry storm or traffic surge; drop = upstream failure |
-| `latency_p50` | ms | Median response time — half of requests are faster | ~45 ms | Typical user experience has degraded |
-| `latency_p95` | ms | 95th-percentile — only 5% of requests are slower | ~120 ms | Slow tail latency is affecting a significant share of users |
-| `latency_p99` | ms | 99th-percentile — the slowest 1% of requests | ~280 ms | Worst-case experience; often GC pauses or lock contention |
-| `error_rate` | 0 – 1 | Fraction of requests that returned an error | ~0.5% | Even a small jump is serious — users are hitting failures |
+| `cpu_percent` | % | CPU consumed by the service | ~42% | Runaway process, traffic surge, or slow query |
+| `memory_percent` | % | RAM in use as a share of total | ~58% | Gradual climb = memory leak; sudden jump = large allocation |
+| `request_rate` | req/s | Requests arriving per second | ~120 | Spike = retry storm; drop = upstream service failing |
+| `latency_p50` | ms | Median response time | ~45 ms | The typical user experience has got worse |
+| `latency_p95` | ms | 95th-percentile response time | ~120 ms | Slow tail latency is affecting many users |
+| `latency_p99` | ms | 99th-percentile response time | ~280 ms | Worst-case experience — often GC pauses or lock contention |
+| `error_rate` | 0–1 | Fraction of requests that errored | ~0.5% | Even a small rise is serious — users are hitting failures |
 
-### Why three latency tabs?
+**Why three latency metrics?** A fast average can hide a painful experience for a small percentage of users. p50 tells you if the typical experience is good; p95 tells you if most users are happy; p99 tells you if the worst cases are acceptable. Anomalies at p99 but not p50 often point to something intermittent (garbage collection, cache misses). Anomalies across all three mean the whole service is struggling.
 
-A single average latency hides a lot. The three percentiles tell different stories:
-
-| Tab | Question it answers |
-|---|---|
-| `latency_p50` | Is the *typical* experience good? |
-| `latency_p95` | Are *most* users happy? |
-| `latency_p99` | Are the *worst cases* acceptable? |
-
-Anomalies at p99 but not p50 usually point to something intermittent (lock contention, cold cache, garbage collection). Anomalies at all three together mean the whole service is struggling.
+---
 
 ## ML evaluation
 
-Each training run:
-1. Loads the training window from TimescaleDB (default: 30 days)
-2. Splits 80% train / 20% holdout
+Each time the training job runs it:
+
+1. Loads the last 30 days of metrics from TimescaleDB
+2. Splits the data 80% train / 20% holdout (chronologically — no data leakage)
 3. Fits an Isolation Forest on the training split
-4. Injects synthetic anomalies into the holdout (5% of rows, 5–10× spike)
-5. Evaluates precision / recall / F1 against ground-truth labels
-6. Stores the model + scores in MinIO and `model_registry`
+4. Injects synthetic anomalies into the holdout set (spikes 5–10× the normal value)
+5. Scores the holdout and computes precision, recall, and F1 against the known injected anomalies
+6. Saves the model to MinIO and records the scores in the `model_registry` table
 
-The **Models** page in the dashboard displays these scores with colour coding:
+The **Models** page shows these scores colour-coded by quality:
 
-| Score range | Colour | Meaning |
-|-------------|--------|---------|
-| ≥ 0.80 | Green | Good |
-| 0.60 – 0.79 | Amber | Fair — consider tuning contamination |
-| < 0.60 | Red | Poor — check data quality |
-| — | Grey | Not evaluated yet |
+| Score | Colour | Meaning |
+|-------|--------|---------|
+| ≥ 0.80 | 🟢 Green | Good — model reliably detects anomalies |
+| 0.60–0.79 | 🟡 Amber | Fair — model works but misses some anomalies |
+| < 0.60 | 🔴 Red | Poor — too many misses or false alarms |
+| — | Grey | Not evaluated yet (run `make run-training`) |
+
+> **Precision** = of all alerts raised, what fraction were real anomalies (low precision = too many false alarms).
+> **Recall** = of all real anomalies, what fraction were caught (low recall = too many missed detections).
+> **F1** = single score that balances both (0 = worst, 1 = perfect).
+
+---
+
+## Developer workflow
+
+> `make` commands require WSL 2 or Git Bash on Windows.
+
+| Command | What it does |
+|---------|-------------|
+| `make up` | Start infrastructure (Postgres, Redis, MinIO) |
+| `make down` | Stop containers |
+| `make install` | Install all Python workspace dependencies |
+| `make test` | Run the full pytest suite |
+| `make lint` | Check code style with Ruff (read-only) |
+| `make fmt` | Auto-fix formatting and lint issues |
+| `make typecheck` | Run mypy across all packages |
+| `make clean` | Stop containers **and wipe all data volumes** |
+| `make run-training` | Train one cycle and exit |
+| `make verify-dod-6` | End-to-end health check for all services |
+
+**Pre-commit hooks** (Ruff linting + secret scanning) run automatically on every commit after a one-time setup:
+```bash
+uv run pre-commit install
+```
+
+---
+
+## Repository layout
+
+```
+anomaly-platform/
+├── services/
+│   ├── ingestion/        FastAPI — validates and enqueues metric events
+│   ├── consumer/         Redis Stream worker that writes to TimescaleDB
+│   ├── inference/        FastAPI — scores batches against trained models
+│   ├── alerts/           Alert engine — deduplication and incident creation
+│   ├── dashboard-api/    FastAPI — read-only API for the React frontend
+│   └── training/         Nightly training job — fits, evaluates, and versions models
+├── services/dashboard/   React 18 + TypeScript frontend
+│   └── src/
+│       ├── api/          Typed fetch client + API types
+│       ├── components/   Reusable UI components (charts, badges, rows)
+│       ├── hooks/        TanStack Query hooks with auto-refresh
+│       └── views/        Overview, ServiceDetail, Models pages
+├── libs/
+│   ├── schemas/          Shared Pydantic models (MetricEvent, AnomalyRecord …)
+│   └── logging/          Shared structlog configuration
+├── load-gen/             Synthetic metric generator with injectable anomaly spikes
+├── infra/
+│   ├── docker-compose.yml      Postgres (TimescaleDB), Redis, MinIO
+│   └── sql/                    Schema migrations and continuous aggregate definitions
+├── scripts/
+│   ├── start.ps1 / start.sh    One-command startup (Windows / Unix)
+│   ├── stop.sh                 Graceful shutdown (Unix)
+│   └── verify_dod_phase*.py    End-to-end definition-of-done check scripts
+├── .github/workflows/ci.yml    Lint → typecheck → test on every push
+├── Makefile
+└── pyproject.toml              uv workspace root + Ruff / mypy / pytest config
+```
+
+---
 
 ## Tech stack
 
 | Layer | Technology |
 |-------|-----------|
 | Language | Python 3.12 |
-| Package manager | [uv](https://docs.astral.sh/uv/) (workspace mode) |
+| Package manager | [uv](https://docs.astral.sh/uv/) workspace mode |
 | APIs | FastAPI + Uvicorn |
-| Queue | Redis Streams |
-| Time-series DB | TimescaleDB (Postgres 16) |
-| Continuous aggregates | `metrics_1min` materialized view |
-| Model store | MinIO (S3-compatible) |
-| ML | scikit-learn Isolation Forest |
-| Orchestration | Prefect 2 |
+| Message queue | Redis Streams |
+| Time-series database | TimescaleDB (PostgreSQL 16 extension) |
+| Continuous aggregates | `metrics_1min` materialized view (auto-refreshed) |
+| Object store | MinIO (S3-compatible, stores serialised models) |
+| ML algorithm | Isolation Forest (scikit-learn) |
+| Job scheduler | APScheduler 3 (nightly training cron) |
 | Frontend | React 18 · TypeScript · Vite · TanStack Query · Recharts · Tailwind CSS |
 | Linting | Ruff |
 | Type checking | mypy |
 | Testing | pytest · pytest-asyncio · Vitest · Testing Library · MSW |
 | CI | GitHub Actions |
 
-## Phase progress
+---
 
-- [x] Phase 0 — Setup & Scaffolding
-- [x] Phase 1 — Load Generator & Metrics Schema
-- [x] Phase 2 — Ingestion Pipeline (FastAPI + Redis Streams + TimescaleDB)
-- [x] Phase 3 — Training Pipeline (Isolation Forest + MinIO + holdout eval)
-- [x] Phase 4 — Inference Service & Alert Engine
-- [x] Phase 5 — Dashboard API & React Frontend
-- [x] Phase 6 — Evaluation & Polish
+## Build log
+
+- [x] Phase 0 — Project scaffold, tooling, CI pipeline
+- [x] Phase 1 — Load generator and metrics schema
+- [x] Phase 2 — Ingestion API, Redis Streams, TimescaleDB consumer
+- [x] Phase 3 — Training pipeline: Isolation Forest, MinIO model store, holdout evaluation
+- [x] Phase 4 — Inference API and alert engine
+- [x] Phase 5 — Dashboard API and React frontend
+- [x] Phase 6 — Evaluation scores, model registry UI, startup scripts, documentation
