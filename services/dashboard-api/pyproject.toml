@@ -2,12 +2,20 @@
 name = "ap-dashboard-api"
 version = "0.1.0"
 requires-python = ">=3.12"
-description = "FastAPI dashboard API — serves aggregated metrics, incidents, and model health to the React frontend"
+description = "FastAPI dashboard API -- serves aggregated metrics, incidents, and model health to the React frontend"
 dependencies = [
     "ap-schemas",
     "ap-logging",
-    # Phase 5 additions: fastapi, uvicorn, asyncpg / sqlalchemy
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "asyncpg>=0.30",
+    "pydantic-settings>=2.6",
+    "prometheus-fastapi-instrumentator>=7.0",
+    "prometheus-client>=0.21",
 ]
+
+[project.scripts]
+dashboard = "dashboard_api.main:main"
 
 [tool.uv.sources]
 ap-schemas = { workspace = true }
