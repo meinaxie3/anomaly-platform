@@ -55,7 +55,7 @@ interface Props {
 }
 
 export function ServiceDetail({ service, initialMetric = '', onBack }: Props) {
-  const [window, setWindow] = useState<TimeWindow>('3h')
+  const [window, setWindow] = useState<TimeWindow>('24h')
   const [selectedMetric, setSelectedMetric] = useState<string>(initialMetric)
 
   // Use model list to derive available metrics for this service
@@ -131,7 +131,22 @@ export function ServiceDetail({ service, initialMetric = '', onBack }: Props) {
           <ErrorBanner message="Could not load metric data." />
         )}
 
-        {seriesQuery.isSuccess && (
+        {seriesQuery.isSuccess && seriesQuery.data.points.length === 0 && (
+          <div className="flex h-[280px] flex-col items-center justify-center gap-3 text-center">
+            <p className="text-sm text-slate-500">No data in the last {WINDOWS.find(w => w.value === window)?.label ?? window}</p>
+            {window !== '7d' && (
+              <button
+                onClick={() => setWindow('7d')}
+                className="rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700
+                           ring-1 ring-blue-200 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Try 7 d
+              </button>
+            )}
+          </div>
+        )}
+
+        {seriesQuery.isSuccess && seriesQuery.data.points.length > 0 && (
           <MetricChart
             series={seriesQuery.data}
             windowHours={windowHours}
