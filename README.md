@@ -4,6 +4,26 @@
 
 A production-patterned ML system that ingests real-time service metrics, trains per-metric anomaly detection models on a nightly schedule, and surfaces detected anomalies through an alert engine and live React dashboard.
 
+## Screenshots
+
+**Overview — service health grid and open incidents**
+![Dashboard overview](demo/dashboard.png)
+
+**Service detail — metric chart with anomaly markers**
+![Anomaly detection graph](demo/anomaly%20detection%20graph.png)
+
+**Models — ML eval scores (precision / recall / F1)**
+![ML training results](demo/ml%20train%20results.png)
+
+**Dashboard API — Swagger docs**
+![Dashboard API](demo/dashboard%20api.png)
+
+**Ingestion API — Swagger docs**
+![Ingestion API](demo/ingestion%20api.png)
+
+**Inference API — Swagger docs**
+![Inference API](demo/interference%20api.png)
+
 ## Architecture
 
 ```
