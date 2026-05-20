@@ -1,6 +1,6 @@
 # Anomaly Detection Platform
 
-[![CI](https://github.com/meinaxie3/anamoly-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/meinaxie3/anamoly-platform/actions/workflows/ci.yml)
+[![CI](https://github.com/meinaxie3/anomaly-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/meinaxie3/anomaly-platform/actions/workflows/ci.yml)
 
 A production-patterned ML system that ingests real-time service metrics, trains per-metric anomaly detection models on a nightly schedule, and surfaces detected anomalies through an alert engine and live React dashboard.
 
