@@ -51,7 +51,7 @@ def create_app(
         # Tests inject a mock pool; bypass the lifespan DB setup
         app.state.pool = pool_override
         # Replace lifespan with a no-op so TestClient doesn't create a real pool
-        app.router.lifespan_context = _noop_lifespan  # type: ignore[assignment]
+        app.router.lifespan_context = _noop_lifespan  # type: ignore[assignment,unused-ignore]
 
     app.add_middleware(
         CORSMiddleware,

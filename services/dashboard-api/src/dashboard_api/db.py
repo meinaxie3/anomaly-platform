@@ -144,11 +144,13 @@ async def fetch_metric_series(
     # on a single connection, so asyncio.gather needs one conn per coroutine.
     async def _fetch_points() -> list:
         async with pool.acquire() as conn:
-            return await conn.fetch(series_query, service, metric, from_dt, to_dt, max_points)
+            rows: list = await conn.fetch(series_query, service, metric, from_dt, to_dt, max_points)
+            return rows
 
     async def _fetch_anomalies() -> list:
         async with pool.acquire() as conn:
-            return await conn.fetch(_ANOMALY_MARKERS_QUERY, service, metric, from_dt, to_dt)
+            rows: list = await conn.fetch(_ANOMALY_MARKERS_QUERY, service, metric, from_dt, to_dt)
+            return rows
 
     point_rows, anomaly_rows = await asyncio.gather(_fetch_points(), _fetch_anomalies())
 

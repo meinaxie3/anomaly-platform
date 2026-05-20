@@ -64,7 +64,8 @@ def predict(model: IsolationForest, df: pd.DataFrame) -> np.ndarray:
     Returns raw Isolation Forest output: -1 = anomaly, +1 = normal.
     """
     X = df[["value"]].to_numpy()
-    return model.predict(X)
+    result: np.ndarray = model.predict(X)
+    return result
 
 
 def serialize(model: IsolationForest) -> bytes:
