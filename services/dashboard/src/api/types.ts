@@ -49,7 +49,9 @@ export interface ModelSummary {
   trained_at: string    // ISO-8601
   n_samples: number
   fit_seconds: number
-  eval_f1: number       // -1.0 means not evaluated
+  eval_precision: number  // -1.0 means not evaluated
+  eval_recall: number     // -1.0 means not evaluated
+  eval_f1: number         // -1.0 means not evaluated
   is_current: boolean
   window_start: string  // ISO-8601
   window_end: string    // ISO-8601

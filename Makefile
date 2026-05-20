@@ -56,3 +56,38 @@ seed-http:  ## Stream synthetic metrics directly to the ingestion API
 
 verify-dod:  ## Run Phase 2 definition-of-done checks (requires: make up + services running)
 	uv run python scripts/verify_dod.py
+
+verify-dod-4:  ## Run Phase 4 DoD checks (requires: make up + all services running)
+	uv run python scripts/verify_dod_phase4.py
+
+verify-dod-5:  ## Run Phase 5 DoD checks (requires: make up + all services running)
+	uv run python scripts/verify_dod_phase5.py
+
+verify-dod-6:  ## Run Phase 6 DoD checks (requires: make up + all services running)
+	uv run python scripts/verify_dod_phase6.py
+
+# ── Services (run individually) ──────────────────────────────────────────────
+
+run-ingestion:  ## Run the ingestion API (port 8001)
+	uv run ingestion
+
+run-consumer:  ## Run the stream consumer worker
+	uv run consumer
+
+run-inference:  ## Run the inference API (port 8002)
+	uv run inference
+
+run-alerts:  ## Run the alert engine
+	uv run alerts
+
+run-dashboard-api:  ## Run the dashboard API (port 8003)
+	uv run dashboard
+
+run-training:  ## Run one training cycle and exit
+	uv run training --run-once
+
+run-load-gen:  ## Stream synthetic metrics to the ingestion API
+	uv run load-gen --mode http --ingestion-url http://localhost:8001
+
+run-ui:  ## Start the React dev server (port 5173)
+	cd services/dashboard && npm install && npm run dev

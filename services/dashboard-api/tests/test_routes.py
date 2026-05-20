@@ -260,6 +260,8 @@ def _model_row(service: str = "payment-api", is_current: bool = True) -> dict:
         "trained_at": _now() - timedelta(hours=2),
         "n_samples": 12500,
         "fit_seconds": 1.23,
+        "eval_precision": -1.0,
+        "eval_recall": -1.0,
         "eval_f1": -1.0,
         "is_current": is_current,
         "window_start": _now() - timedelta(days=7),
@@ -274,6 +276,8 @@ def test_models_returns_list() -> None:
     body = resp.json()
     assert len(body) == 1
     assert body[0]["algorithm"] == "IsolationForest"
+    assert body[0]["eval_precision"] == pytest.approx(-1.0)
+    assert body[0]["eval_recall"] == pytest.approx(-1.0)
     assert body[0]["eval_f1"] == pytest.approx(-1.0)
 
 

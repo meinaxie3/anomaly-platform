@@ -4,7 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '../test/server'
+import { DEFAULT_MODELS } from '../test/handlers'
 import { Models } from './Models'
+import type { ModelSummary } from '../api/types'
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -21,11 +23,37 @@ describe('Models', () => {
     })
   })
 
-  it('shows — for unevaluated F1 score (-1)', async () => {
+  it('shows evaluated precision, recall, and F1 scores', async () => {
     render(<Models />, { wrapper })
     await waitFor(() => {
-      // eval_f1 = -1 should render as "—"
-      expect(screen.getByText('—')).toBeInTheDocument()
+      expect(screen.getByText('0.870')).toBeInTheDocument()         // precision (table only)
+      expect(screen.getByText('0.820')).toBeInTheDocument()         // recall (table only)
+      // F1 appears twice: avg-stat card + table cell (single model → avg = same value)
+      expect(screen.getAllByText('0.845').length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  it('shows — for unevaluated scores (-1)', async () => {
+    const unevaluated: ModelSummary[] = [
+      {
+        ...DEFAULT_MODELS[0],
+        eval_precision: -1.0,
+        eval_recall: -1.0,
+        eval_f1: -1.0,
+      },
+    ]
+    server.use(http.get('http://localhost/api/models', () => HttpResponse.json(unevaluated)))
+    render(<Models />, { wrapper })
+    await waitFor(() => {
+      // Three "—" cells: precision, recall, F1
+      expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(3)
+    })
+  })
+
+  it('shows average F1 stat when models are evaluated', async () => {
+    render(<Models />, { wrapper })
+    await waitFor(() => {
+      expect(screen.getByLabelText(/average f1/i)).toBeInTheDocument()
     })
   })
 

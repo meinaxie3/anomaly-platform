@@ -72,6 +72,8 @@ class ModelSummary(BaseModel):
     trained_at: datetime
     n_samples: int
     fit_seconds: float
+    eval_precision: float = Field(description="-1.0 means not evaluated yet")
+    eval_recall: float = Field(description="-1.0 means not evaluated yet")
     eval_f1: float = Field(description="-1.0 means not evaluated yet")
     is_current: bool
     window_start: datetime
