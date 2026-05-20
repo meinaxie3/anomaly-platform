@@ -141,11 +141,17 @@ async def fetch_metric_series(
 
     series_query = _AGG_SERIES_QUERY if use_agg else _RAW_SERIES_QUERY
 
-    async with pool.acquire() as conn:
-        point_rows, anomaly_rows = await asyncio.gather(
-            conn.fetch(series_query, service, metric, from_dt, to_dt, max_points),
-            conn.fetch(_ANOMALY_MARKERS_QUERY, service, metric, from_dt, to_dt),
-        )
+    # Use two separate connections: asyncpg does not allow concurrent queries
+    # on a single connection, so asyncio.gather needs one conn per coroutine.
+    async def _fetch_points() -> list:
+        async with pool.acquire() as conn:
+            return await conn.fetch(series_query, service, metric, from_dt, to_dt, max_points)
+
+    async def _fetch_anomalies() -> list:
+        async with pool.acquire() as conn:
+            return await conn.fetch(_ANOMALY_MARKERS_QUERY, service, metric, from_dt, to_dt)
+
+    point_rows, anomaly_rows = await asyncio.gather(_fetch_points(), _fetch_anomalies())
 
     log.debug(
         "metric_series_fetched",

@@ -1,5 +1,4 @@
 import { formatDistanceToNow, parseISO } from 'date-fns'
-import { Activity } from 'lucide-react'
 import { EmptyState } from '../components/EmptyState'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { IncidentRow } from '../components/IncidentRow'
@@ -55,7 +54,7 @@ function ServiceCard({ service, openIncidents, health, lastAnomalyAt, onClick }:
 // ---------------------------------------------------------------------------
 
 interface Props {
-  onSelectService: (service: string) => void
+  onSelectService: (service: string, metric?: string) => void
 }
 
 export function Overview({ onSelectService }: Props) {
@@ -122,7 +121,11 @@ export function Overview({ onSelectService }: Props) {
         {incidentsQuery.isSuccess && incidentsQuery.data.length > 0 && (
           <div className="space-y-2">
             {incidentsQuery.data.slice(0, 10).map((inc) => (
-              <IncidentRow key={inc.incident_id} incident={inc} />
+              <IncidentRow
+                key={inc.incident_id}
+                incident={inc}
+                onClick={() => onSelectService(inc.service, inc.metric)}
+              />
             ))}
           </div>
         )}

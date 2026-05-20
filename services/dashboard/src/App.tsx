@@ -18,10 +18,12 @@ type View = 'overview' | 'service' | 'models'
 export default function App() {
   const [view, setView] = useState<View>('overview')
   const [selectedService, setSelectedService] = useState<string>('')
+  const [selectedMetric, setSelectedMetric] = useState<string>('')
 
-  function navigateTo(v: View, service?: string) {
+  function navigateTo(v: View, service?: string, metric?: string) {
     setView(v)
     if (service) setSelectedService(service)
+    setSelectedMetric(metric ?? '')
   }
 
   return (
@@ -70,12 +72,13 @@ export default function App() {
       <main className="mx-auto max-w-7xl px-6 py-8">
         {view === 'overview' && (
           <Overview
-            onSelectService={(svc) => navigateTo('service', svc)}
+            onSelectService={(svc, metric) => navigateTo('service', svc, metric)}
           />
         )}
         {view === 'service' && selectedService && (
           <ServiceDetail
             service={selectedService}
+            initialMetric={selectedMetric}
             onBack={() => navigateTo('overview')}
           />
         )}

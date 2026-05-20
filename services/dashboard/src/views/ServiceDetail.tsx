@@ -50,18 +50,19 @@ function WindowToggle({ value, onChange }: WindowToggleProps) {
 
 interface Props {
   service: string
+  initialMetric?: string   // pre-select a metric tab (e.g. when navigating from an incident row)
   onBack: () => void
 }
 
-export function ServiceDetail({ service, onBack }: Props) {
+export function ServiceDetail({ service, initialMetric = '', onBack }: Props) {
   const [window, setWindow] = useState<TimeWindow>('3h')
-  const [selectedMetric, setSelectedMetric] = useState<string>('')
+  const [selectedMetric, setSelectedMetric] = useState<string>(initialMetric)
 
   // Use model list to derive available metrics for this service
   const modelsQuery = useModels(service, true)
   const metrics = modelsQuery.data?.map((m) => m.metric) ?? []
 
-  // Default to first metric once we have models
+  // If initialMetric was provided use it; otherwise fall back to first available metric
   const activeMetric = selectedMetric || metrics[0] || ''
 
   const windowHours = WINDOWS.find((w) => w.value === window)?.hours ?? 3
@@ -154,7 +155,11 @@ export function ServiceDetail({ service, onBack }: Props) {
         ) : (
           <div className="space-y-2">
             {serviceIncidents.map((inc) => (
-              <IncidentRow key={inc.incident_id} incident={inc} />
+              <IncidentRow
+                key={inc.incident_id}
+                incident={inc}
+                onClick={() => setSelectedMetric(inc.metric)}
+              />
             ))}
           </div>
         )}
