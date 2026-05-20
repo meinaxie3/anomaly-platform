@@ -194,6 +194,56 @@ uv run pre-commit install
 
 ## Metrics & anomaly detection
 
+### How anomaly detection works
+
+Every anomaly marker on the dashboard was flagged by a machine learning model — there are no hardcoded thresholds. Here is the full pipeline from raw metric to red dot on the chart:
+
+```
+Load Generator
+    │
+    │  sends cpu_percent = 42.3 every 10 seconds
+    ▼
+Ingestion API  →  Redis Stream  →  Consumer
+                                       │
+                                       │  batches readings, calls...
+                                       ▼
+                                 Inference API
+                                       │
+                                       │  loads the trained Isolation Forest
+                                       │  model for (payment-api, cpu_percent)
+                                       │  scores the new reading
+                                       │
+                              ┌────────┴────────┐
+                              │                 │
+                           normal            ANOMALY
+                              │                 │
+                         do nothing        write to anomalies table
+                                                │
+                                                ▼
+                                          Alert Engine
+                                                │
+                                          groups anomalies
+                                          into an Incident
+                                                │
+                                                ▼
+                                          Dashboard
+                                    (red dot on the chart)
+```
+
+### ML vs simple threshold alerting
+
+| Simple threshold alerting | This platform |
+|---|---|
+| `if cpu > 80% → alert` | No hardcoded number |
+| Fires at 81% even at 3am when that's normal | Knows 3am baseline is different |
+| Silent if normal is 90% and value drops to 50% | Catches drops too |
+| Someone has to set every threshold manually | Model learns from data automatically |
+| Same rule for every service | Separate model per service + metric |
+
+The model learns that `payment-api cpu_percent` peaks at ~57% during business hours and sits at ~28% overnight — so 75% at 2am is anomalous, but 75% at noon might not be.
+
+> **Note:** anomalies can be high *or* low. A sudden drop in `latency_p50` (service responding near-instantly) is just as suspicious as a spike — it may indicate the service is short-circuiting and returning errors rather than doing real work.
+
 ### What "anomaly detected" means
 
 The platform trains an **Isolation Forest** model on each service + metric pair using weeks of historical data. The model learns what *normal* looks like — the typical range, the daily peaks, the quiet overnight hours. When a new metric reading arrives, the model scores it. If the score is unusual enough relative to history, it is flagged as an anomaly.
